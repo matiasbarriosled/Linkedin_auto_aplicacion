@@ -124,13 +124,21 @@ def search_jobs(driver, job_title, location):
 
 def main():
     """Función principal para ejecutar el script."""
+
     driver = initialize_driver()
+    all_results = {}
+
     try:
         if not linkedin_login(driver, LINKEDIN_EMAIL, LINKEDIN_PASSWORD):
-            return #si linkedin_login() devuelve False (fallo de login), main termina inmediatamente.
-        driver.get("https://www.linkedin.com/jobs/search/")
+            return # en caso de fallar el login, termina la funcion
+        for job_title in JOB_TITLES:
+            job_results = search_jobs(driver, job_title, LOCATION)
+            all_results[job_title] = job_results
+            time.sleep(2) 
     finally:        
         driver.quit()
+
+    total_jobs_found = 0
 
 if __name__ == "__main__":
     main()
