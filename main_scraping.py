@@ -63,6 +63,65 @@ def linkedin_login(driver, email, password):
         print(f"Verificar credenciales. Error: {e}")
         return False
 
+def search_jobs(driver, job_title, location):
+    """Realiza la búsqueda de empleo y aplica el filtro 'Solicitud sencilla'."""
+    wait = WebDriverWait(driver, 10)
+
+    try:
+        driver.get("https://www.linkedin.com/jobs/search/")
+
+        job_search_field = driver.find_element(By.CLASS_NAME, "jobs-search-box__text-input")
+        job_search_field.clear()
+        job_search_field.send_keys(job_title)
+        job_search_field.send_keys(Keys.ENTER)
+        time.sleep(2)
+
+        xpath_location = "//input[contains(@aria-label, 'Ciudad, provincia/estado o código postal') or contains(@aria-label, 'Search location')]"
+        location_search_field = wait.until(EC.presence_of_element_located((By.XPATH, xpath_location)))
+        location_search_field.clear()
+        location_search_field.send_keys(location)
+        location_search_field.send_keys(Keys.ENTER) 
+        time.sleep(2)
+        
+        easy_apply_button_xpath = "//button[contains(., 'Solicitud sencilla') or contains(., 'Easy Apply')]"
+        easy_apply_button = wait.until(EC.element_to_be_clickable((By.XPATH, easy_apply_button_xpath)))
+        easy_apply_button.click()
+        time.sleep(2)
+
+        jobs_list = []
+        job_list_container = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.scaffold-layout__list >div >ul")))
+        job_cards = job_list_container.find_elements(By.CSS_SELECTOR, ":scope > li")
+
+        for i, card in enumerate(job_cards):
+            if i >= MAX_JOBS_PER_SEARCH:
+                break
+            try:
+                card.click()
+                time.sleep(2)
+                detail_job = driver.find_element(By.CLASS_NAME, "jobs-search__job-details--wrapper")
+
+                new_link = card.find_element(By.TAG_NAME, "a").get_attribute("href").split("?")[0]
+                title = detail_job.find_element(By.CLASS_NAME, "job-details-jobs-unified-top-card__job-title").text
+                company = detail_job.find_element(By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__company-name a").text
+                location_text = detail_job.find_element(By.CSS_SELECTOR, "div.job-details-jobs-unified-top-card__tertiary-description-container span > span:first-of-type").text
+
+                jobs_list.append({
+                    "Titulo": title,
+                    "Compañia": company,
+                    "Ubicacion": location_text,
+                    "Enlace": new_link
+                })
+
+            except Exception as e:
+                print(f"⚠️ Error en tarjeta {i+1}: {e}")
+                continue
+        
+        return jobs_list
+
+    except Exception as e:
+        print(f"ERROR al buscar el puesto '{job_title}': {e}")
+        return []
+
 def main():
     """Función principal para ejecutar el script."""
     driver = initialize_driver()
